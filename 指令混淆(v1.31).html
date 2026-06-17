@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>MC指令混淆器 · 网易基岩版 v1.31</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Courier New', 'Consolas', 'Monaco', monospace; background: #1e1e1e; color: #ccc; padding: 2rem 1.5rem; line-height: 1.5; }
+        .container { max-width: 860px; margin: 0 auto; background: #2a2a2a; border: 1px solid #3a3a3a; padding: 1.8rem 2rem 1.5rem 2rem; border-radius: 6px; }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+        .modal-box { background: #2a2a2a; border: 1px solid #555; padding: 2rem; border-radius: 8px; max-width: 500px; width: 90%; text-align: center; }
+        .modal-box h3 { color: #e0c36a; margin-bottom: 1rem; }
+        .modal-box p { font-size: 0.85rem; color: #bbb; margin: 0.5rem 0; text-align: left; }
+        .modal-box button { margin-top: 1.5rem; padding: 0.5rem 2rem; font-size: 1rem; cursor: pointer; }
+        .modal-box button:disabled { opacity: 0.4; cursor: not-allowed; }
+        .page-nav { display: flex; justify-content: center; gap: 0.6rem; margin-bottom: 1.5rem; }
+        .page-dot { width: 24px; height: 10px; border-radius: 5px; background: #4a4a4a; border: none; cursor: pointer; transition: background 0.2s; }
+        .page-dot.active { background: #999; }
+        .page-dot:hover { background: #777; }
+        .page { display: none; }
+        .page.active { display: block; }
+        h1 { font-size: 1.5rem; font-weight: bold; margin-bottom: 0.2rem; border-bottom: 1px solid #3a3a3a; padding-bottom: 0.5rem; color: #e0e0e0; }
+        .subtitle { font-size: 0.85rem; color: #888; margin-bottom: 1.2rem; }
+        .alert-banner { background: #332e1a; border: 1px solid #4a4020; padding: 0.6rem 1rem; margin-bottom: 1.2rem; font-size: 0.8rem; color: #b0a060; display: flex; align-items: center; justify-content: space-between; border-radius: 4px; }
+        .alert-banner .close-banner { cursor: pointer; font-weight: bold; font-size: 1rem; margin-left: 1rem; color: #8a7a4b; background: none; border: none; padding: 0 0.3rem; }
+        label { display: block; font-weight: bold; margin: 1rem 0 0.2rem 0; font-size: 0.9rem; color: #bbb; }
+        textarea { width: 100%; font-family: 'Courier New', 'Consolas', 'Monaco', monospace; font-size: 0.85rem; padding: 0.5rem; margin-bottom: 0.8rem; border: 1px solid #444; background: #333; color: #ddd; resize: vertical; box-sizing: border-box; border-radius: 4px; transition: border-color 0.2s; }
+        textarea:focus { border-color: #777; outline: none; }
+        .opt-box { border: 1px solid #3a3a3a; padding: 0.7rem 1rem; margin: 1rem 0; border-radius: 12px; }
+        .opt-box legend { font-weight: bold; font-size: 0.9rem; color: #aaa; }
+        .opt-box label { display: inline-block; margin-right: 1.5rem; font-weight: normal; font-size: 0.85rem; cursor: pointer; color: #bbb; transition: color 0.15s; }
+        .opt-box label:hover { color: #ddd; }
+        select { font-family: 'Courier New', 'Consolas', 'Monaco', monospace; font-size: 0.82rem; padding: 0.15rem 0.3rem; border: 1px solid #555; background: #333; color: #ccc; border-radius: 3px; }
+        button { font-family: 'Courier New', 'Consolas', 'Monaco', monospace; font-size: 0.82rem; font-weight: bold; padding: 0.35rem 1.2rem; margin-right: 0.5rem; margin-bottom: 0.8rem; border: 1px solid #555; background: #3a3a3a; color: #ccc; cursor: pointer; border-radius: 25px; transition: background 0.2s, border-color 0.2s; }
+        button:hover { background: #4a4a4a; border-color: #777; }
+        button:active { background: #555; }
+        .length-warn { color: #cc6666; font-size: 0.82rem; margin-top: 0.3rem; padding: 0.4rem 0.5rem; border-left: 3px solid #cc6666; background: #2a1a1a; display: none; border-radius: 3px; }
+        .exec-warn { background: #1a2a33; border: 1px solid #3a5a6a; padding: 0.4rem 0.8rem; margin-bottom: 1rem; font-size: 0.85rem; display: none; border-radius: 4px; color: #8ab; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #2a2a2a; }
+        ::-webkit-scrollbar-thumb { background: #555; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #777; }
+        .footer { margin-top: 1.5rem; font-size: 0.6rem; color: #666; text-align: right; border-top: 1px solid #3a3a3a; padding-top: 0.5rem; }
+        .footer strong { color: #888; }
+        .page-placeholder { text-align: center; color: #555; padding: 3rem 0; font-size: 0.9rem; }
+        
+        /* 仅针对复制按钮做手机版兼容，不改变尺寸、不加多余创意 */
+        @media (max-width: 640px) {
+            /* 确保复制按钮在手机上可点，无样式篡改，不放大，不变圆角，不加动画 */
+            #copyBtn {
+                -webkit-tap-highlight-color: rgba(255,255,255,0.1);
+                touch-action: manipulation;
+                cursor: pointer;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="modal-overlay" id="startupModal">
+    <div class="modal-box">
+        <h3>⚠ 使用须知</h3>
+        <p>· 混淆将大幅增加指令运算量</p>
+        <p>· 本工具无法逆向，混淆前请做好备份</p>
+        <p>· 不支持 N 叉树、大数圆规等逻辑相关内容混淆</p>
+        <p>· 本工具仅供娱乐或参考</p>
+        <button id="startupCloseBtn" disabled>3 秒后可关闭</button>
+    </div>
+</div>
+
+<div class="container">
+    <p style="text-align:right;font-size:0.7rem;color:#666;margin-bottom:0.3rem;">啧入 离谱出品</p>
+
+    <div class="page-nav" id="pageNav">
+        <button class="page-dot active" data-page="1"></button>
+        <button class="page-dot" data-page="2"></button>
+        <button class="page-dot" data-page="3"></button>
+        <button class="page-dot" data-page="4"></button>
+    </div>
+
+    <div class="page active" id="page1">
+        <h1>MC指令混淆器 · 网易基岩版</h1>
+        <div class="subtitle">让你的指令变成一坨大的</div>
+
+        <div class="alert-banner" id="alertBanner">
+            <span>⚠无法逆向 · 贵重指令请勿混淆</span>
+            <button class="close-banner" id="closeBannerBtn">×</button>
+        </div>
+
+        <label for="inputCmd">📥 原始指令</label>
+        <textarea id="inputCmd" rows="3" placeholder="/execute as @a run kick @a">/execute as @a run kick @a</textarea>
+
+        <div class="exec-warn" id="execWarn"></div>
+
+        <fieldset class="opt-box">
+            <legend>⚙️ 混淆选项</legend>
+            <label><input type="checkbox" id="useSelectorObf" checked> 选择器混淆</label>
+            <label><input type="checkbox" id="useEternal"> 恒真条件</label>
+            <label><input type="checkbox" id="useFormat"> §k格式码</label>
+            <label><input type="checkbox" id="useFunny"> 搞怪名字</label><br>
+            <span style="font-weight:bold;font-size:0.85rem;">噪音强度：</span>
+            <select id="noiseLevel">
+                <option value="light">轻度</option>
+                <option value="medium" selected>中度</option>
+                <option value="heavy">重度</option>
+                <option value="unlimited">无限制</option>
+            </select>
+        </fieldset>
+
+        <button id="obfuscateBtn">执行混淆</button>
+        <button id="clearBtn">清空</button>
+
+        <label for="outputCmd">📤 混淆结果</label>
+        <textarea id="outputCmd" rows="4" readonly placeholder="混淆后的指令将显示在这里..."></textarea>
+        <button id="copyBtn">复制结果</button>
+        <div class="length-warn" id="lengthWarn"></div>
+    </div>
+
+    <div class="page" id="page2">
+        <div class="page-placeholder">功能扩展区 · 待开发</div>
+    </div>
+    <div class="page" id="page3">
+        <div class="page-placeholder">功能扩展区 · 待开发</div>
+    </div>
+    <div class="page" id="page4">
+        <div class="page-placeholder">功能扩展区 · 待开发</div>
+    </div>
+
+    <div class="footer">
+        啧入离谱出品
+    </div>
+</div>
+
+<script>
+(function() {
+    const FUNNY_NAMES = ["minecraftandminiworld","jinitaimei","kanwogansenmo","hahahaha","awa","qwq","owo","banzai","yigebuliaogong","xianyujv","renshengkunnan","niganma","heheda","wobuzhidao","suibian","zheshisha"];
+    const COMMON_SCOREBOARDS = ["时长","time","数量","检测","对比辅助","限制","设置数据","玩家输入","货币","钻石","HP","gold","通用积分名","随机","random"];
+
+    const SUBCOMMAND_TEMPLATES = [
+        "positioned as @p","in overworld","positioned ^^^100",
+        "rotated as @e[c=1]","anchored eyes","anchored feet",
+        "if block ~ ~-1 ~ stone","if block ~ ~ ~ air","if block ~ ~1 ~ dirt",
+        "if scores @s <计分板> matches 1..","if scores @s <计分板> matches 0",
+        "if scores @a[c=1] <计分板> matches ..100",
+        "at @s","at @p","at @r","at @e[type=player,c=1]",
+        "as @a","as @p","as @r","as @e[type=zombie,c=1]"
+    ];
+
+    const COMMAND_TEMPLATES = [
+        "execute as @r at @p positioned 0 73 2 run","clone ~~~ ~~~ ~~1~",
+        "facing entity @s feet","unless entity @s","tp @e[c=1] ~100 ~",
+        "setblock ~ ~-1 ~ command_block","particle minecraft:endrod~~~",
+        "fill ~~~ ~~~ stone","summon zombie ~ ~ ~",
+        "scoreboard players set @s <计分板> 1","replaceitem entity @s slot.hotbar 0 diamond",
+        "playsound random.orb @p","effect @s speed 10 2",
+        "spreadplayers ~ ~ 0 100 @p","camerashake @p add positional 0.5 1",
+        "clear @s stone 0 64","enchant @s sharpness 5"
+    ];
+
+    const ETERNAL_CONDITIONS_TYPE1 = ["ender_dragon","wither"];
+    const ETERNAL_AXES = ["x","y","z"];
+
+    let unlimitedWarned = false;
+
+    // 转义 tag=!"" 内部的方括号，防止破坏选择器语法
+    function escapeBracketsForTag(str) {
+        return str.replace(/\[/g, '\\[').replace(/\]/g, '\\]');
+    }
+
+    function funnyName() { return FUNNY_NAMES[Math.floor(Math.random()*FUNNY_NAMES.length)]; }
+    function generateFiller(useFunny) {
+        const pool = useFunny ? [...FUNNY_NAMES, ...COMMON_SCOREBOARDS] : COMMON_SCOREBOARDS;
+        const base = pool[Math.floor(Math.random() * pool.length)];
+        if (Math.random() > 0.2) return base;
+        const suffix = String.fromCharCode(97 + Math.floor(Math.random() * 4));
+        const hasChinese = /[\u4e00-\u9fa5]/.test(base);
+        return hasChinese ? base + suffix : base + '_' + suffix;
+    }
+
+    function extractScoreboardNames(cmd) {
+        const names = new Set();
+        const re1 = /scores=\{(\w+)=/g;
+        const re2 = /scoreboard players \w+ @\w+ (\w+)/g;
+        const re3 = /if scores @\w+ (\w+)/g;
+        let m;
+        while((m=re1.exec(cmd))!==null) names.add(m[1]);
+        while((m=re2.exec(cmd))!==null) names.add(m[1]);
+        while((m=re3.exec(cmd))!==null) names.add(m[1]);
+        return [...names];
+    }
+
+    function replaceScoreboardPlaceholders(str, scoreboardNames) {
+        const allNames = [...new Set([...scoreboardNames, ...COMMON_SCOREBOARDS])];
+        const getRandomName = () => allNames[Math.floor(Math.random() * allNames.length)];
+        return str.replace(/<计分板>/g, () => getRandomName());
+    }
+
+    function replaceTextPlaceholders(str) {
+        const texts = ["hello","world","test","msg","info","warn","error","ok","done","start","stop"];
+        return str.replace(/<占位文本>/g, () => texts[Math.floor(Math.random() * texts.length)]);
+    }
+
+    function replaceNumber(match,prefix,num) {
+        if(/c\s*=\s*$/.test(prefix)||/c=$/.test(prefix)) { const v=[1,1,1,2,2,3]; return prefix+v[Math.floor(Math.random()*v.length)]; }
+        if(/r\s*=\s*$/.test(prefix)||/rm\s*=\s*$/.test(prefix)||/r=$/.test(prefix)||/rm=$/.test(prefix)) { return prefix+(10+Math.floor(Math.random()*191)); }
+        if(/dx\s*=\s*$/.test(prefix)||/dy\s*=\s*$/.test(prefix)||/dz\s*=\s*$/.test(prefix)) { return prefix+(1+Math.floor(Math.random()*20)); }
+        if(match.includes('matches')) { const lo=Math.floor(Math.random()*10); const hi=lo+1+Math.floor(Math.random()*10); return `matches ${lo}..${hi}`; }
+        return prefix+(1+Math.floor(Math.random()*99));
+    }
+
+    function randNum(str) {
+        return str.replace(/([cr]m?=|dx|dy|dz|=|matches\s*)(\d+)/g,replaceNumber).replace(/\^\^\^(-?\d+)/g,(m,num)=>{const n=parseInt(num)||0;return'^^^'+(Math.abs(n)%60+1);}).replace(/\d+/g,(m)=>{const n=parseInt(m);return(n<100?n:Math.floor(Math.random()*99)+1).toString();});
+    }
+
+    function getNoiseRange(type, lv) {
+        const config = {
+            extraTag: { light: [0,0], medium: [0,2], heavy: [1,3], unlimited: [3,5] },
+            extraCond: { light: [0,0], medium: [0,2], heavy: [1,3], unlimited: [3,5] },
+            innerObf: { light: [0,0], medium: [0,2], heavy: [1,3], unlimited: [2,4] }
+        };
+        return config[type][lv] || [0,0];
+    }
+    function getBaseTagCount() { return 1; }
+    function getBaseConditionCount() { return 1; }
+    function randInRange(r) { return r[0]+Math.floor(Math.random()*(r[1]-r[0]+1)); }
+
+    function generateEternalCondition() {
+        const t = Math.floor(Math.random() * 2);
+        const r = 10000 + Math.floor(Math.random() * 90001);
+        const rm = r - 0.1;
+        const type = ETERNAL_CONDITIONS_TYPE1[t % ETERNAL_CONDITIONS_TYPE1.length];
+        return `unless entity @e[type=${type},r=${r},rm=${rm},c=-1]`;
+    }
+
+    function makeFormatBlock() { return'§k'+Math.random().toString(36).slice(2,6)+'§r'; }
+
+    function injectFormatsOnFiller(filler, cnt) {
+        const chars = filler.split('');
+        for(let i=0; i<cnt; i++){
+            const p = Math.floor(Math.random() * (chars.length + 1));
+            chars.splice(p, 0, ' '+makeFormatBlock()+' ');
+        }
+        return chars.join('');
+    }
+
+    function injectInner(sel,useFunny) {
+        let filler = generateFiller(useFunny);
+        filler = escapeBracketsForTag(filler);
+        if(!sel.includes('[')) return sel+`[tag=!"${filler}"]`;
+        const lb=sel.lastIndexOf(']'); if(lb===-1) return sel;
+        const base=sel.substring(0,lb), inner=sel.substring(sel.indexOf('[')+1,lb);
+        const newInner=inner+(inner.trim().length>0&&!inner.endsWith(',')?',':'')+`tag=!"${filler}"`;
+        return sel.substring(0,sel.indexOf('[')+1)+newInner+']';
+    }
+
+    function obfInnerSelectors(tpl,lv) {
+        const range=getNoiseRange('innerObf',lv); const cnt=randInRange(range); let r=tpl;
+        for(let i=0;i<cnt;i++){ r=r.replace(/@[pares]\s*(\[[^\]]*\])?/g, m=>injectInner(m,false)); }
+        return r;
+    }
+
+    function randEntity(useFunny) {
+        if(useFunny) return "obf_"+funnyName()+"_"+funnyName();
+        return "obf_"+generateFiller(false)+"_"+Date.now().toString(36);
+    }
+
+    function pickTemplates(cnt, scoreboardNames) {
+        const subN=Math.ceil(cnt*2/3), cmdN=cnt-subN;
+        const s=[...SUBCOMMAND_TEMPLATES].sort(()=>Math.random()-0.5);
+        const c=[...COMMAND_TEMPLATES].sort(()=>Math.random()-0.5);
+        const sel=[...s.slice(0,subN),...c.slice(0,cmdN)];
+        const processed = sel.map(t => replaceTextPlaceholders(t));
+        return processed.sort(()=>Math.random()-0.5)
+            .map(t => randNum(t))
+            .map(t => replaceScoreboardPlaceholders(t, scoreboardNames));
+    }
+
+    function genChaos(lv, useFmt, useFunny, useSelObf, isLast, targetCount, scoreboardNames) {
+        const cnt=Math.max(1,targetCount);
+        const sel=pickTemplates(cnt, scoreboardNames);
+        const obf=sel.map(t=>obfInnerSelectors(t,lv));
+        let parts=[];
+        for(let i=0;i<obf.length;i++){
+            parts.push(obf[i]);
+            if(i<obf.length-1){
+                let filler = generateFiller(useFunny);
+                if(useFmt){ const kCnt=(lv==='heavy'||lv==='unlimited')?2:1; filler = injectFormatsOnFiller(filler, kCnt); }
+                parts.push(' \\" '+filler+' \\" ');
+            }
+        }
+        let raw=parts.join('');
+        if(isLast&&useSelObf){
+            const fakeMod1=SUBCOMMAND_TEMPLATES[Math.floor(Math.random()*SUBCOMMAND_TEMPLATES.length)];
+            const fakeMod2=SUBCOMMAND_TEMPLATES[Math.floor(Math.random()*SUBCOMMAND_TEMPLATES.length)];
+            const fakeCmd=COMMAND_TEMPLATES[Math.floor(Math.random()*COMMAND_TEMPLATES.length)];
+            const fakeChain=`run execute as @s ${replaceScoreboardPlaceholders(fakeMod1, scoreboardNames)} ${replaceScoreboardPlaceholders(fakeMod2, scoreboardNames)} run ${replaceScoreboardPlaceholders(replaceTextPlaceholders(fakeCmd), scoreboardNames)}`;
+            raw+=' \\" '+fakeChain+' \\"';
+        }
+        let esc=raw.replace(/\\/g,'\\\\').replace(/"/g,'\\"');
+        esc += '\\\\';
+        if (isLast && useSelObf) {
+            esc += ' \\\\';
+        }
+        return esc;
+    }
+
+    function injectSelector(sel,lv,useFmt,useFunny,useSelObf,isLast,scoreboardNames) {
+        const baseCnt=getBaseTagCount(); const extraRange=getNoiseRange('extraTag',lv); const totalTags=baseCnt+randInRange(extraRange);
+        let result=sel;
+        for(let t=0;t<totalTags;t++){
+            let noise=genChaos(lv,useFmt,useFunny,useSelObf,isLast,1,scoreboardNames);
+            noise = escapeBracketsForTag(noise);
+            if(!result.includes('[')){ result=result+`[tag=!"${noise}"]`; }
+            else{ const lb=result.lastIndexOf(']'); if(lb===-1) continue; const base=result.substring(0,lb); const inner=result.substring(result.indexOf('[')+1,lb); const newInner=inner+(inner.trim().length>0&&!inner.endsWith(',')?',':'')+`tag=!"${noise}"`; result=result.substring(0,result.indexOf('[')+1)+newInner+']'; }
+        }
+        return result;
+    }
+
+    function injectAll(cmd,lv,useFmt,useFunny,useSelObf,scoreboardNames) {
+        const re=/@[pares]\s*(\[[^\]]*\])?/g; const matches=[...cmd.matchAll(re)]; if(!matches.length) return cmd;
+        const lastIdx=matches[matches.length-1].index; let res='',li=0;
+        for(const m of matches){ const isLast=(m.index===lastIdx); res+=cmd.slice(li,m.index); res+=injectSelector(m[0],lv,useFmt,useFunny,useSelObf,isLast,scoreboardNames); li=m.index+m[0].length; }
+        return res+cmd.slice(li);
+    }
+
+    function checkAndWrap(cmd) {
+        const execCount=(cmd.match(/\bexecute\b/gi)||[]).length; const warnDiv=document.getElementById('execWarn');
+        if(execCount>=2){ warnDiv.style.display='block'; warnDiv.textContent=`⚠ 检测到 ${execCount} 个 execute 嵌套，混淆后可能影响执行逻辑。`; return cmd; }
+        if(execCount===1){ warnDiv.style.display='none'; return cmd; }
+        const trimCmd=cmd.replace(/^\/\s*/,''); const words=trimCmd.split(/\s+/); const verb=words[0]; const rest=words.slice(1).join(' ');
+        const wrapTargets=['kill','kick','ban','whitelist'];
+        if(wrapTargets.includes(verb)){ const selMatch=rest.match(/@[pare](?:\[[^\]]*\])?/); if(selMatch&&/@[ap]/.test(selMatch[0])){ const wrapped=`/execute as ${selMatch[0]} run ${verb} @s`; warnDiv.style.display='block'; warnDiv.textContent=`✓ 已自动包装为 execute 形式。`; return wrapped; } }
+        if(verb==='say'||verb==='tellraw'||verb==='titleraw'||verb==='title'){ const wrapped=`/execute as @s run ${trimCmd}`; warnDiv.style.display='block'; warnDiv.textContent=`✓ 已自动包装为 execute as @s 形式。`; return wrapped; }
+        warnDiv.style.display='block'; warnDiv.textContent=`⚠ 无法自动添加 execute。请手动改写为 /execute as ... run ... 形式后再混淆。`; return cmd;
+    }
+
+    function validateBrackets(cmd){ const open=(cmd.match(/\[/g)||[]).length; const close=(cmd.match(/\]/g)||[]).length; return open===close; }
+
+    let currentEntityName='';
+
+    function switchPage(pageNum){
+        document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+        document.querySelectorAll('.page-dot').forEach(d=>d.classList.remove('active'));
+        document.getElementById('page'+pageNum).classList.add('active');
+        document.querySelector(`.page-dot[data-page="${pageNum}"]`).classList.add('active');
+    }
+
+    function obfuscate(){
+        const input=document.getElementById('inputCmd').value.trim(); if(!input) return alert('请输入指令');
+        if(!validateBrackets(input)){ alert('语法错误：方括号 [ ] 不配对，请检查原指令。'); return; }
+        const lv=document.getElementById('noiseLevel').value;
+        if(lv==='unlimited'&&!unlimitedWarned){ unlimitedWarned=true; if(!confirm('⚠ 指令文本和运算量将暴增，确定继续？')) return; }
+        let cmd=checkAndWrap(input);
+        const scoreboardNames = extractScoreboardNames(cmd);
+        const useSelObf=document.getElementById('useSelectorObf').checked;
+        const useEternal=document.getElementById('useEternal').checked;
+        const useFmt=document.getElementById('useFormat').checked;
+        const useFunny=document.getElementById('useFunny').checked;
+        const m=cmd.match(/^(\/?)execute\s+(.*?)\brun\b\s+(.*)$/is);
+        if(m){
+            let slash=m[1]||'', before=m[2], final=m[3];
+            final=injectAll(final,lv,useFmt,useFunny,useSelObf,scoreboardNames);
+            before=injectAll(before,lv,useFmt,useFunny,useSelObf,scoreboardNames);
+            let extra=''; currentEntityName='';
+            if(useEternal){
+                const baseCondCnt=getBaseConditionCount(); const extraRange=getNoiseRange('extraCond',lv); const totalConds=baseCondCnt+randInRange(extraRange);
+                const conds = [];
+                for(let i=0;i<totalConds;i++){
+                    conds.push(generateEternalCondition());
+                }
+                const parts = before.split(/\s+/);
+                for(const cond of conds){
+                    const pos = Math.floor(Math.random() * (parts.length + 1));
+                    parts.splice(pos, 0, cond);
+                }
+                before = parts.join(' ');
+            }
+            if(useSelObf){ currentEntityName=randEntity(useFunny); extra+=` unless entity @e[name="${currentEntityName}",c=1]`; }
+            cmd=`${slash}execute ${before} as @s${extra} run ${final}`;
+        }else{ cmd=injectAll(cmd,lv,useFmt,useFunny,useSelObf,scoreboardNames); }
+        document.getElementById('outputCmd').value=cmd;
+        const w=document.getElementById('lengthWarn');
+        if(cmd.length>32000){ w.style.display='block'; w.textContent=`⚠ 长度 ${cmd.length} 超过32000，可能无法保存。`; }
+        else if(cmd.length>30000){ w.style.display='block'; w.textContent=`⚠ 长度 ${cmd.length} 接近上限。`; }
+        else{ w.style.display='none'; }
+    }
+
+    (function(){
+        const btn = document.getElementById('startupCloseBtn');
+        let countdown = 3;
+        const timer = setInterval(()=>{
+            countdown--;
+            if(countdown <= 0){
+                clearInterval(timer);
+                btn.disabled = false;
+                btn.textContent = '关闭';
+            } else {
+                btn.textContent = countdown + ' 秒后可关闭';
+            }
+        }, 1000);
+        btn.addEventListener('click', ()=>{
+            document.getElementById('startupModal').style.display = 'none';
+        });
+    })();
+
+    document.querySelectorAll('.page-dot').forEach(d=>{ d.addEventListener('click',function(){ switchPage(this.dataset.page); }); });
+    document.getElementById('obfuscateBtn').addEventListener('click',obfuscate);
+    
+    // 复制按钮兼容手机版 —— 仅优化移动端点击兼容性，不改变样式、不增加花哨功能
+    const copyBtn = document.getElementById('copyBtn');
+    copyBtn.addEventListener('click', function(e) {
+        const outputTextarea = document.getElementById('outputCmd');
+        const textToCopy = outputTextarea.value;
+        if (!textToCopy) {
+            alert('无内容可复制');
+            return;
+        }
+        
+        // 标准现代复制 API (支持绝大部分移动浏览器)
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                const originalText = copyBtn.textContent;
+                copyBtn.textContent = '✅ 已复制';
+                setTimeout(() => {
+                    copyBtn.textContent = originalText;
+                }, 1500);
+            }).catch(() => {
+                fallbackCopy(textToCopy);
+            });
+        } else {
+            fallbackCopy(textToCopy);
+        }
+        
+        function fallbackCopy(text) {
+            // 移动端备选方案：创建隐藏可编辑区域进行复制
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.top = '-9999px';
+            textarea.style.left = '-9999px';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.select();
+            textarea.setSelectionRange(0, 99999); // 对移动端更友好
+            try {
+                const success = document.execCommand('copy');
+                if (success) {
+                    const originalText = copyBtn.textContent;
+                    copyBtn.textContent = '✅ 已复制';
+                    setTimeout(() => {
+                        copyBtn.textContent = originalText;
+                    }, 1500);
+                } else {
+                    alert('复制失败，请手动复制');
+                }
+            } catch (err) {
+                alert('复制失败，请手动复制');
+            }
+            document.body.removeChild(textarea);
+        }
+    });
+    
+    document.getElementById('clearBtn').addEventListener('click',()=>{
+        document.getElementById('inputCmd').value=''; document.getElementById('outputCmd').value='';
+        document.getElementById('lengthWarn').style.display='none'; document.getElementById('execWarn').style.display='none';
+    });
+    document.getElementById('closeBannerBtn').addEventListener('click',()=>{ document.getElementById('alertBanner').style.display='none'; });
+})();
+</script>
+</body>
+</html>
